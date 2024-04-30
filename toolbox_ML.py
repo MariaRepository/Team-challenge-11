@@ -4,6 +4,101 @@ import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 
 
+### Funcion: describe_df (Alfonso)
+
+def describe_df(dataframe):
+    """
+    Esta función analiza:
+    - Los tipos de datos
+    - Los valores faltantes
+    - Los valores únicos
+    - La cardinalidad
+    de las variables de un DataFrame. 
+
+    Argumentos:
+    dataframe: DataFrame de Pandas
+
+    Retorna:
+    DataFrame donde las filas representan los tipos de datos, valores faltantes, etc.,
+    y las columnas representan las variables del DataFrame.
+    """
+
+    # Lista de columnas del DataFrame
+    lista_columnas = dataframe.columns.tolist()
+    
+    # Diccionario para almacenar los parámetros de cada columna
+    diccionario_parametros = {}
+    
+    # Iteración sobre las columnas del DataFrame
+    for columna in lista_columnas:
+        # Tipo de datos de la columna
+        tipo = dataframe[columna].dtype
+        
+        # Porcentaje de valores faltantes en la columna
+        porc_nulos = round(dataframe[columna].isna().sum() / len(dataframe) * 100, 2)
+        
+        # Valores únicos en la columna
+        valores_no_nulos = dataframe[columna].dropna()
+        unicos = valores_no_nulos.nunique()
+        
+        # Cardinalidad de la columna
+        cardinalidad = round(unicos / len(valores_no_nulos) * 100, 2)
+        
+        # Almacenar los parámetros de la columna en el diccionario
+        diccionario_parametros[columna] = [tipo, porc_nulos, unicos, cardinalidad]
+    
+    # Construcción del DataFrame de resumen
+    df_resumen = pd.DataFrame(diccionario_parametros, index=["DATE_TYPE", "MISSINGS (%)", "UNIQUE_VALUES", "CARDIN (%)"])
+    
+    # Retorno del DataFrame de resumen
+    return df_resumen
+
+
+### Funcion: tipifica_variables (Alfonso)
+
+def tipifica_variables(dataframe, umbral_categoria, umbral_continua):
+    """
+    Esta función sugiere el tipo de variable para cada columna de un DataFrame
+    basándose en la cardinalidad y umbrales proporcionados.
+
+    Argumentos:
+    dataframe: DataFrame de Pandas
+    umbral_categoria: Entero, umbral para la cardinalidad que indica cuándo considerar una variable categórica.
+    umbral_continua: Flotante, umbral para el porcentaje de cardinalidad que indica cuándo considerar una variable numérica continua.
+
+    Retorna:
+    DataFrame con dos columnas: "nombre_variable" y "tipo_sugerido",
+    donde cada fila contiene el nombre de una columna del DataFrame y una sugerencia del tipo de variable.
+    """
+
+    # Lista para almacenar las sugerencias de tipos de variables
+    sugerencias_tipos = []
+
+    # Iteración sobre las columnas del DataFrame
+    for columna in dataframe.columns:
+        # Cálculo de la cardinalidad y porcentaje de cardinalidad
+        cardinalidad = dataframe[columna].nunique()
+        porcentaje_cardinalidad = (cardinalidad / len(dataframe)) * 100
+
+        # Sugerencia del tipo de variable
+        if cardinalidad == 2:
+            tipo_sugerido = "Binaria"
+        elif cardinalidad < umbral_categoria:
+            tipo_sugerido = "Categórica"
+        else:
+            if porcentaje_cardinalidad >= umbral_continua:
+                tipo_sugerido = "Numérica Continua"
+            else:
+                tipo_sugerido = "Numérica Discreta"
+
+        # Agregar la sugerencia de tipo de variable a la lista
+        sugerencias_tipos.append([columna, tipo_sugerido])
+
+    # Construcción del DataFrame de sugerencias
+    df_sugerencias = pd.DataFrame(sugerencias_tipos, columns=["nombre_variable", "tipo_sugerido"])
+
+    # Retorno del DataFrame de sugerencias
+    return df_sugerencias
 
 
 
