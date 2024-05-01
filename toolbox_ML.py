@@ -157,6 +157,67 @@ plot_features_num_regression(df_inmo, target_col="median_house_value", columns=[
 
 
 
+# Funcion: get_features_cat_regression (Brenda)
+
+import pandas as pd
+import numpy as np
+from scipy.stats import chi2_contingency, f_oneway
+
+
+def get_features_cat_regression(dataframe, target_col, pvalue=0.05):
+    '''
+Selección de columnas categóricas del dataframe (features cat) cuyo test de relación con la columna target
+supere en confianza estadística el test de relación que sea necesario, en este caso, chi2 y ANOVA.
+
+Argumentos:
+dataframe (DataFrame): DataFrame que contiene los datos.
+target_col (str): Nombre de la columna que es el objetivo de la regresión (target).
+pvalue (float): Nivel de significancia para el test estadístico. Por defecto 0.05.
+
+Retorna:
+list: Lista de columnas categóricas significantes.
+'''
+    # Comprobación de la existencia de la columna target_col
+    if target_col not in dataframe.columns:
+        print(f"Error: La columna {target_col} no existe en el DataFrame.")
+        return None
+    
+    # Verificación de si target_col es una columna numérica continua del dataframe
+    if target_col not in dataframe.columns or not np.issubdtype(dataframe[target_col].dtype, np.number):
+        print(f"Error: La columna {target_col} no es una columna numérica continua válida.")
+        return None
+    
+    # Comprobación de que pvalue es un valor válido
+    if not isinstance(pvalue, (int, float)) or pvalue <= 0 or pvalue >= 1:
+        print(f"Error: {pvalue} debe ser un número entre 0 y 1.")
+        return None
+    
+    # Obteneción de columnas categóricas
+    cat_cols = dataframe.select_dtypes(include=['object', 'category']).columns.tolist()
+    
+    # Si no hay columnas categóricas, retornar None
+    if not cat_cols:
+        print("No hay columnas categóricas en el dataframe.")
+        return None
+    
+    # Usar los tests para comprobar la relación entre las variables categóricas y target_col
+    significant_features = []
+    for col in cat_cols:
+        # Para determinar qué test de relación utilizar, lo hacemos verificancdo el nº de niveles únicos (categorías) en col
+        contingency_table = pd.crosstab(dataframe[col], dataframe[target_col])
+        
+        if contingency_table.shape[0] == 2:  # Test chi-cuadrado: si hay 2 niveles únicos, o sea, tablas de contigencia 2x2
+            _, p_val, _, _ = chi2_contingency(contingency_table) #esto devuelve el estadístico de chi2 y el valor p
+            
+        else:  # Test ANOVA; se usa para más de 2 grupos
+            _, p_val = f_oneway(*[dataframe[target_col][dataframe[col] == val] for val in dataframe[col].unique()]) # devuelve el valor F y el valor p
+        
+        # Comprobar si el p-valor es menor que el pvalue especificado. Si el valor p < pvalue, se rechaza la hipotesis nula y se considera que es una col cat significativa
+        if p_val < pvalue:
+            significant_features.append(col)
+    
+    return significant_features
+
 
 # Funcion: plot_features_cat_regression (Fernando)
 
