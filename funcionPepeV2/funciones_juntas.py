@@ -1,7 +1,17 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr
+""""
+Esta función toma los siguientes argumentos:
+Df: El DataFrame de pandas sobre el que realizará la función.
+target_col: Es el nombre de la columna objetivo, el Target.
+umbral_corr: Un umbral de correlación, entre 0 y 1.
+Pvalue: Un valor que por defecto está desactivado.
 
+La función irá comprobando las relaciones entre las columnas numéricas del DataFrame y la columna target, que también es numérica. 
+Devolverá una lista con las columnas cuya correlación con el target sea superior a lo indicado en la variable umbral_corr. 
+Además, si la columna pvalue está activada, el test de hipótesis entre las columnas y el target debe ser igual o superior a lo indicado en dicha variable.
+"""
 def get_features_num_regression(df, target_col, umbral_corr, pvalue=None):
     # Comprobación de que df es un DataFrame de pandas
     if not isinstance(df, pd.DataFrame):
@@ -387,7 +397,10 @@ def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.
                 plt.ylabel("Frecuencia")
                 plt.show()
     
-    return significant_features
+    return significant_features 
+
+
+
 
 
 
