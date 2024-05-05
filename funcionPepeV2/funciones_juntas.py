@@ -399,6 +399,98 @@ def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.
     
     return significant_features 
 
+""""
+Esta función toma los siguientes argumentos:
+Df: El DataFrame de pandas sobre el que realizará la función.
+target_col: Es el nombre de la columna objetivo, el Target.
+umbral_corr: Un umbral de correlación, entre 0 y 1.
+Pvalue: Un valor que por defecto está desactivado.
+
+La función irá comprobando las relaciones entre las columnas numéricas del DataFrame y la columna target, que también es numérica. 
+Devolverá una lista con las columnas cuya correlación con el target sea superior a lo indicado en la variable umbral_corr. 
+Además, si la columna pvalue está activada, el test de hipótesis entre las columnas y el target debe ser igual o superior a lo indicado en dicha variable.
+"""
+
+def get_features_num_regression_V2(df, target_col, umbral_corr, pvalue=None):
+    #Primero comprobamos que el primer atributo, df, sea un DataFrame. 
+    if not isinstance(df, pd.DataFrame):
+        print(f"{df} NO ES UN DATAFRAME DE PANDAS, POR FAVOR REVISA LA LLAMADA A LA FUNCION") 
+        return None
+    #Ahora comprobamos que la segunda variable de la funcion sea una columna numérica de del dataframe.
+    nombres_columnas = list(df.columns) #Creamos una lista con los nombres de las columnas.
+    
+    
+    if target_col not in nombres_columnas:
+        print(f"{target_col} no es una columna del DataFrame df, por favor revise la llamada a la función.")
+        print("COMPRUEBE SUS DATOS")
+        return 
+    else:
+        tipo_de_datos = df[target_col].dtype
+        if tipo_de_datos in ['int64', 'float64']: #Vemos que es una columna numerica
+            print()
+        else:
+            try:
+                pd.to_numeric(df[target_col]) #Con esto vemos que la columna se puede convertir a numerica. 
+                print(f"{target_col} HA SIDO CONVERTIDA A TIPO NUMÉRICO")
+            except ValueError:
+                print(f"{target_col} NO ES DE TIPO NUMERICO NI SE PUEDE CONVERTIR EN TIPO NUMERICO.")
+                print("COMPRUEBE SUS DATOS")
+                return None
+    #Comprobamos que el valor introduciodo como umbral de correlacion sea valido.
+    if not str(umbral_corr).replace('.', '', 1).isdigit():
+        print(F"{umbral_corr} NO ES UN NUMERO, EL 3ª TERMINO DE ESTA FUNCION DEBE SER UN NUMERO ENTRE 0 Y 1")
+        return ("COMPRUEBE SUS DATOS")
+    else:
+        if umbral_corr > 1:
+            print("EL UMBRAL DE CORRELACION NO PUEDE SER MAYOR A 1")
+            return ("COMPRUEBE SUS DATOS")
+     
+        if   umbral_corr < 0:
+                print("EL UMBRAL DE CORRELACION NO PUEDE SER MENOR A 0")
+                return ("COMPRUEBE SUS DATOS")
+        else:
+            print() 
+    if pvalue is not None:
+        if not isinstance(pvalue, (int, float)):
+            print("El valor pvalue debe ser un número.")
+            return None
+        elif pvalue <= 0 or pvalue >= 1:
+            print("El valor pvalue debe estar entre 0 y 1.")
+            return None 
+        else: 
+            #Ahora buscamos las columnas con un correlacion con el target superior al umbral.
+            #Primero creamos una lista con todas las columnas numericas (menos el target) y el test de hipotesis mayor o igual que p-value
+            columnas_numericas = []
+            for columna in df.columns:
+                 if pd.api.types.is_numeric_dtype(df[columna]) and columna != target_col:
+                     columnas_numericas.append(columna)
+            columnas_numericas_umbral = []
+            for columna_umbral in columnas_numericas:
+                correlacion = df[columna_umbral].corr(df[target_col])
+                if abs(correlacion) > umbral_corr and stats.ttest_ind(df[columna_umbral], df[target_col]).pvalue <= pvalue:
+                    columnas_numericas_umbral.append(columna_umbral)
+            print("Las columnas numéricas cuya correlación con el target es superior a lo que necesitamos son:")
+            return columnas_numericas_umbral 
+
+    else: 
+        #Ahora buscamos las columnas con un correlacion con el target superior al umbral.
+    #Primero creamos una lista con todas las columnas numericas (menos el target)
+   
+        columnas_numericas = []
+        for columna in df.columns:
+            if pd.api.types.is_numeric_dtype(df[columna]) and columna != target_col:
+                columnas_numericas.append(columna) 
+    #Si la corralacion (en valor absoluto) de la columna con el target es superior al umbral de correlacion, se añadirá a una lista que será la que devulva la funcion.
+        columnas_numericas_umbral = []
+        for columna_umbral in columnas_numericas:
+            correlacion = df[columna_umbral].corr(df[target_col])
+            if abs(correlacion) > umbral_corr:
+                columnas_numericas_umbral.append(columna_umbral)
+        print("Las columnas numéricas cuya correlación con el target es superior a lo que necesitamos son:")     
+        return columnas_numericas_umbral 
+
+
+
 
 
 
