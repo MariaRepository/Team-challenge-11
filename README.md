@@ -1,5 +1,5 @@
 <div style="display: flex; justify-content: center;">
-    <img src="./imagenes/ban.png" style="border-radius: 18px; width: 95%;">
+    <img src="./imagenes/ban.png" style="border-radius: 25px; width: 100%;">
 </div> 
   
 <br>
