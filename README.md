@@ -43,7 +43,7 @@ Las funciones mencionadas están disponibles en el archivo **"toolbox_ML.py"**. 
 
 👁️ TANTO EN EL ARCHIVO DONDE SE PLANTEA EL RETO, **'Team_Challenge_ToolBox_I.ipynb'** como en el archivo python **'toolbox_ML.py'** LAS FUNCIONES ESTÁN EXPLICADAS, DE FORMA MAS EXTENSA.
 
-<img src="imagenes/cajin.jpg" alt="Descripción de la imagen" style="border-radius: 10px; width: 55%;">  
+<img src="imagenes/cajin.jpg" alt="Descripción de la imagen" style="border-radius: 10px; width: 49%;">  
 
 <br>    
 
