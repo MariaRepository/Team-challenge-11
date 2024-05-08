@@ -668,7 +668,21 @@ def plot_features_num_regressionv2(df, target_col, lista_columnas="", umbral_cor
 # Nueva funcion plot cat
 
 def plot_features_cat_regressionv2(dataframe, target_col="", columns=[], pvalue=0.05, with_individual_plot=False):
+    """
+    Función que genera los gráficos pairplot de las variables (columnas) de un DataFrame dada una variable target numérica.
 
+    Argumentos:
+    df (DataFrame): DataFrame que contiene las variables para las que queremos generar los gráficos pairplot.
+    target_col (string): Nombre de la variable del DataFrame considerada como target.
+    lista_columnas (lista) = Nombres de las columnas del DataFrame para las que queremos generar los gráficos pairplot
+    umbral_corr (float) = valor mínimo de correlación para seleccionar las variables.
+    umbral_pvalue (float) = valor máximo de pvalue para seleccionar las variables.
+    limite_pairplot (int) = valor máximo de variables a generar en los gráficos pairplot.
+
+    Retorna:
+    Lista: devuelve una lista con los nombres de las columnas numéricas que cumplen las condiciones.
+    """
+    
     # Verificar los valores de entrada
     if not isinstance(dataframe, pd.DataFrame):
         raise ValueError("El primer argumento debe ser un dataframe.")
