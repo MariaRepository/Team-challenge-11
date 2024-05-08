@@ -310,7 +310,7 @@ def plot_features_num_regression(df, target_col="", columns=[], umbral_corr=0, p
         
     # Dividir las columnas en grupos de máximo cinco para pairplot
     for i in range(0, len(filtered_columns), 4):
-        sns.pairplot(df[filtered_columns[i:i+4] + [target_col]], kind='reg', diag_kind='kde')
+        sns.pairplot(df[filtered_columns[i:i+4] + [target_col]], kind='reg', diag_kind='kde',plot_kws={'scatter_kws': {'s': 5}})
         plt.show()
     
     return filtered_columns
@@ -738,3 +738,65 @@ def plot_features_cat_regressionv2(dataframe, target_col="", columns=[], pvalue=
     return significant_columns
 
 #Ejemplo: plot_features_cat_regression(dataframe=df_vinos, target_col="quality", columns= [], pvalue=0.05, with_individual_plot=False)
+
+
+
+
+
+
+
+# Funcion: plot_features_cat_regression (Fernando)
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.stats import chi2_contingency, f_oneway
+
+
+def get_features_cat_regression(dataframe, target_col, pvalue=0.05):
+    """
+    Selección de características categóricas significativas para regresión.
+
+    Argumentos:
+    dataframe (DataFrame): DataFrame que contiene los datos.
+    target_col (str): Nombre de la columna que es el objetivo de la regresión.
+    pvalue (float): Nivel de significancia para el test estadístico. Por defecto 0.05.
+
+    Retorna:
+    list: Lista de características categóricas significativas.
+    """
+    
+    # Comprobación de la existencia de la columna target_col
+    if target_col not in dataframe.columns:
+        print(f"Error: La columna {target_col} no existe en el DataFrame.")
+        return None
+    
+    # Comprobación de que target_col sea numérica
+    if not np.issubdtype(dataframe[target_col].dtype, np.number):
+        print(f"Error: La columna {target_col} no es numérica.")
+        return None
+    
+    # Comprobación de pvalue válido
+    if not isinstance(pvalue, float) or pvalue <= 0 or pvalue >= 1:
+        print("Error: pvalue debe ser un valor float en el rango (0, 1).")
+        return None
+    
+    # Obtención de columnas categóricas
+    cat_columns = dataframe.select_dtypes(include=['object', 'category']).columns
+    
+    # Comprobación de existencia de columnas categóricas
+    if len(cat_columns) == 0:
+        print("Error: No se encontraron columnas categóricas en el DataFrame.")
+        return None
+    
+    # Comprobación de la relación entre cada columna categórica y target_col
+    significant_features = []
+    for col in cat_columns:
+        contingency_table = pd.crosstab(dataframe[col], dataframe[target_col])
+        if chi2_contingency(contingency_table)[1] < pvalue:
+            significant_features.append(col)
+    
+    return significant_features
+
+#####################################################################################################################
