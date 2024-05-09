@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 
 
-### Funcion: describe_df (Alfonso)
+### Funcion: describe_df 
 
 def describe_df(dataframe):
     """
@@ -53,8 +53,9 @@ def describe_df(dataframe):
     # Retorno del DataFrame de resumen
     return df_resumen
 
+#####################################################################################################################
 
-### Funcion: tipifica_variables (Alfonso)
+### Funcion: tipifica_variables 
 
 def tipifica_variables(dataframe, umbral_categoria, umbral_continua):
     """
@@ -100,10 +101,76 @@ def tipifica_variables(dataframe, umbral_categoria, umbral_continua):
     # Retorno del DataFrame de sugerencias
     return df_sugerencias
 
+#####################################################################################################################
 
+### Funcion: get_features_num_regression 
 
+import pandas as pd
+import numpy as np
+from scipy.stats import pearsonr
 
-### Funcion: plot_features_num_regression (María)
+def get_features_num_regression(df, target_col, umbral_corr, pvalue=None):
+    
+    """"
+Esta función toma los siguientes argumentos:
+Df: El DataFrame de pandas sobre el que realizará la función.
+target_col: Es el nombre de la columna objetivo, el Target.
+umbral_corr: Un umbral de correlación, entre 0 y 1.
+Pvalue: Un valor que por defecto está desactivado.
+
+La función irá comprobando las relaciones entre las columnas numéricas del DataFrame y la columna target, que también es numérica. 
+Devolverá una lista con las columnas cuya correlación con el target sea superior a lo indicado en la variable umbral_corr. 
+Además, si la columna pvalue está activada, el test de hipótesis entre las columnas y el target debe ser igual o superior a lo indicado en dicha variable.
+"""
+
+    
+    # Comprobación de que df es un DataFrame de pandas
+    if not isinstance(df, pd.DataFrame):
+        print("Error: El primer argumento debe ser un DataFrame de pandas.")
+        return None
+    
+    # Comprobación de que target_col es una columna en el DataFrame
+    if target_col not in df.columns:
+        print("Error: 'target_col' no es una columna válida en el DataFrame.")
+        return None
+    
+    # Comprobación de que target_col es numérica
+    if not np.issubdtype(df[target_col].dtype, np.number):
+        print("Error: 'target_col' no es una variable numérica en el DataFrame.")
+        return None
+    
+    # Comprobación de que umbral_corr está entre 0 y 1
+    if not 0 <= umbral_corr <= 1:
+        print("Error: 'umbral_corr' debe estar entre 0 y 1.")
+        return None
+    
+    # Comprobación de que pvalue es None o un número entre 0 y 1
+    if pvalue is not None and not 0 <= pvalue <= 1:
+        print("Error: 'pvalue' debe ser None o un número entre 0 y 1.")
+        return None
+    
+    # Calcula la correlación de Pearson entre target_col y cada otra columna numérica
+    corr_values = df.select_dtypes(include=np.number).apply(lambda x: pearsonr(df[target_col], x)[0])
+    
+    # Filtra las columnas con correlación mayor al umbral_corr
+    relevant_features = corr_values[abs(corr_values) > umbral_corr].index.tolist()
+    
+    # Si pvalue no es None, filtra también por el valor de p-value
+    if pvalue is not None:
+        significant_features = []
+        for feature in relevant_features:
+            # Calcula el p-value para la correlación entre target_col y la feature actual
+            _, p_val = pearsonr(df[target_col], df[feature])
+            # Comprueba si el p-value es menor que 1-pvalue (significación mayor o igual a 1-pvalue)
+            if p_val <= (1 - pvalue):
+                significant_features.append(feature)
+        return significant_features
+    
+    return relevant_features
+
+#####################################################################################################################
+
+### Funcion: plot_features_num_regression 
 
 def plot_features_num_regression(df, target_col="", columns=[], umbral_corr=0, pvalue=None):
 
@@ -147,17 +214,17 @@ def plot_features_num_regression(df, target_col="", columns=[], umbral_corr=0, p
                     print(f"Además, el valor p ({p_value}) es mayor o igual que el valor especificado ({pvalue}).")
         
     # Dividir las columnas en grupos de máximo cinco para pairplot
-    for i in range(0, len(filtered_columns), 5):
-        sns.pairplot(df[filtered_columns[i:i+5] + [target_col]], kind='reg', diag_kind='kde')
+    for i in range(0, len(filtered_columns), 4):
+        sns.pairplot(df[filtered_columns[i:i+4] + [target_col]], kind='reg', diag_kind='kde',plot_kws={'scatter_kws': {'s': 5}})
         plt.show()
     
     return filtered_columns
 # Ejemplo de uso
-plot_features_num_regression(df_inmo, target_col="median_house_value", columns=[], umbral_corr=0.5, pvalue=0.05)
+#plot_features_num_regression(df_inmo, target_col="median_house_value", columns=[], umbral_corr=0.5, pvalue=0.05)
 
+#####################################################################################################################
 
-
-# Funcion: get_features_cat_regression (Brenda)
+# Funcion: get_features_cat_regression
 
 import pandas as pd
 import numpy as np
@@ -218,60 +285,15 @@ list: Lista de columnas categóricas significantes.
     
     return significant_features
 
+#####################################################################################################################
 
-# Funcion: plot_features_cat_regression (Fernando)
+# Funcion: plot_features_cat_regression 
 
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import chi2_contingency, f_oneway
-
-
-def get_features_cat_regression(dataframe, target_col, pvalue=0.05):
-    """
-    Selección de características categóricas significativas para regresión.
-
-    Argumentos:
-    dataframe (DataFrame): DataFrame que contiene los datos.
-    target_col (str): Nombre de la columna que es el objetivo de la regresión.
-    pvalue (float): Nivel de significancia para el test estadístico. Por defecto 0.05.
-
-    Retorna:
-    list: Lista de características categóricas significativas.
-    """
-    
-    # Comprobación de la existencia de la columna target_col
-    if target_col not in dataframe.columns:
-        print(f"Error: La columna {target_col} no existe en el DataFrame.")
-        return None
-    
-    # Comprobación de que target_col sea numérica
-    if not np.issubdtype(dataframe[target_col].dtype, np.number):
-        print(f"Error: La columna {target_col} no es numérica.")
-        return None
-    
-    # Comprobación de pvalue válido
-    if not isinstance(pvalue, float) or pvalue <= 0 or pvalue >= 1:
-        print("Error: pvalue debe ser un valor float en el rango (0, 1).")
-        return None
-    
-    # Obtención de columnas categóricas
-    cat_columns = dataframe.select_dtypes(include=['object', 'category']).columns
-    
-    # Comprobación de existencia de columnas categóricas
-    if len(cat_columns) == 0:
-        print("Error: No se encontraron columnas categóricas en el DataFrame.")
-        return None
-    
-    # Comprobación de la relación entre cada columna categórica y target_col
-    significant_features = []
-    for col in cat_columns:
-        contingency_table = pd.crosstab(dataframe[col], dataframe[target_col])
-        if chi2_contingency(contingency_table)[1] < pvalue:
-            significant_features.append(col)
-    
-    return significant_features
 
 
 def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.05, with_individual_plot=False):
@@ -321,7 +343,7 @@ def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.
     # Plot de histogramas agrupados para características categóricas significativas
     for feature in significant_features:
         plt.figure(figsize=(10, 6))
-        sns.histplot(data=dataframe, x=feature, hue=target_col, multiple="stack")
+        sns.histplot(data=dataframe, x=feature, hue=target_col, multiple="stack", palette= "viridis")
         plt.title(f"Histograma agrupado para {feature} en relación con {target_col}")
         plt.xlabel(feature)
         plt.ylabel("Frecuencia")
@@ -332,11 +354,12 @@ def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.
         if with_individual_plot:
             for value in dataframe[feature].unique():
                 plt.figure(figsize=(6, 4))
-                sns.histplot(data=dataframe[dataframe[feature] == value], x=target_col)
+                sns.histplot(data=dataframe[dataframe[feature] == value], x=target_col, palette= 'green')
                 plt.title(f"Histograma de {target_col} para {feature}={value}")
                 plt.xlabel(target_col)
                 plt.ylabel("Frecuencia")
                 plt.show()
     
-    return significant_features
+    return significant_features 
 
+#####################################################################################################################
