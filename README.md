@@ -61,7 +61,7 @@ Las funciones mencionadas están disponibles en el archivo **"toolbox_ML.py"**. 
 
 ### INFORMACIÓN EXTRA:
 >Puedes ver los archivos usados en el archivo de prueba en la carpeta [**dataframe**](https://github.com/MariaRepository/Team-challenge-11/tree/main/dataframe).  
->Las imagenes usadas en este archivo, generadas todas con IA y editadas con paint, estan en la carpeta [**imagenes**](https://github.com/MariaRepository/Team-challenge-11/tree/main/imagenes) , donde están además las imagenes que no fueron usadas.
+>Las imagenes usadas en este archivo, generadas todas con IA y editadas con paint, están en la carpeta [**imagenes**](https://github.com/MariaRepository/Team-challenge-11/tree/main/imagenes) , donde están además las imagenes que no fueron usadas.
 
 
   
