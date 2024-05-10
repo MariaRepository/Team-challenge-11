@@ -47,8 +47,15 @@ Las funciones mencionadas están disponibles en el archivo **"toolbox_ML.py"**. 
 
 <br>    
 
-Si, las funciones funcionan. Han sido probadas con varios dataset. 
-En el archivo **"prueba.ipynb"** se carga el dataframe [AQUI PONEMOS LO QUE TOCA] y se importa el archivo 'toolbox_ML.py'  para ir llamando a las distintas funciones. 
+Sí, las funciones funcionan. Han sido probadas con varios datasets. Para la demostración de funcionamiento se ha creado el archivo [**"prueba.ipynb"**](https://github.com/MariaRepository/Team-challenge-11/blob/main/prueba.ipynb), donde se cargan varios dataframes para probar las funciones. Dichos dataframes se cargan desde los siguientes archivos:
+
+- **ejemplo_housing.csv:** Este archivo CSV se volcó en un DataFrame llamado “df_casas” y consta de 20433 filas y 10 columnas. Recoge información que puede influir en el precio de las casas del entorno de Boston.
+- **obligatoria_hard.csv:** El DataFrame de Pandas sobre el que se volcó la información de este archivo tiene por título “df_practica”, consta de 506 entradas y 13 columnas. Este DataFrame también se emplea para la estimación de los posibles precios de casas, en él se incluyen algunos parámetros medioambientales.
+- **wines_dataset.csv:** El nombre del DataFrame sobre el que se vuelca este archivo es “df_vinos”, tiene 13 columnas y 6497 entradas. En él se recoge información sobre distintos vinos italianos de forma que se pueda predecir si es tinto o blanco.
+
+Para la utilización de las funciones se importa el archivo 'toolbox_ML.py' para ir llamando a las distintas funciones.
+
+Puedes ver los archivos usados en el archivo de prueba en la carpeta [**dataframe**](https://github.com/MariaRepository/Team-challenge-11/tree/main/dataframe).
 
 
 
