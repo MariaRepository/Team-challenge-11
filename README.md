@@ -47,6 +47,8 @@ Las funciones mencionadas están disponibles en el archivo **"toolbox_ML.py"**. 
 
 <br>    
 
+### PRUEBA DE LAS FUNCIONES  
+  
 Sí, las funciones funcionan. Han sido probadas con varios datasets. Para la demostración de funcionamiento se ha creado el archivo [**"prueba.ipynb"**](https://github.com/MariaRepository/Team-challenge-11/blob/main/prueba.ipynb), donde se cargan varios dataframes para probar las funciones. Dichos dataframes se cargan desde los siguientes archivos:
 
 - **ejemplo_housing.csv:** Este archivo CSV se volcó en un DataFrame llamado “df_casas” y consta de 20433 filas y 10 columnas. Recoge información que puede influir en el precio de las casas del entorno de Boston.
