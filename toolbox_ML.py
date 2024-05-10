@@ -1,7 +1,9 @@
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.stats import pearsonr
+from scipy.stats import chi2_contingency, f_oneway
 
 
 ### Funcion: describe_df 
@@ -226,10 +228,6 @@ def plot_features_num_regression(df, target_col="", columns=[], umbral_corr=0, p
 
 # Funcion: get_features_cat_regression
 
-import pandas as pd
-import numpy as np
-from scipy.stats import chi2_contingency, f_oneway
-
 
 def get_features_cat_regression(dataframe, target_col, pvalue=0.05):
     '''
@@ -288,12 +286,6 @@ list: Lista de columnas categóricas significantes.
 #####################################################################################################################
 
 # Funcion: plot_features_cat_regression 
-
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from scipy.stats import chi2_contingency, f_oneway
 
 
 def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.05, with_individual_plot=False):
