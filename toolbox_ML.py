@@ -5,7 +5,6 @@ import numpy as np
 from scipy.stats import pearsonr
 from scipy.stats import chi2_contingency, f_oneway
 
-
 ### Funcion: describe_df 
 
 def describe_df(dataframe):
@@ -106,10 +105,6 @@ def tipifica_variables(dataframe, umbral_categoria, umbral_continua):
 #####################################################################################################################
 
 ### Funcion: get_features_num_regression 
-
-import pandas as pd
-import numpy as np
-from scipy.stats import pearsonr
 
 def get_features_num_regression(df, target_col, umbral_corr, pvalue=None):
     
@@ -287,71 +282,76 @@ list: Lista de columnas categóricas significantes.
 
 # Funcion: plot_features_cat_regression 
 
-
 def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.05, with_individual_plot=False):
     """
-    Grafica histogramas agrupados para características categóricas en relación con target_col.
+    Función que genera los gráficos pairplot de las variables (columnas) de un DataFrame dada una variable target numérica.
 
     Argumentos:
-    dataframe (DataFrame): DataFrame que contiene los datos.
-    target_col (str): Nombre de la columna que es el objetivo de la regresión. Por defecto "".
-    columns (list): Lista de nombres de columnas categóricas a considerar. Por defecto [].
-    pvalue (float): Nivel de significancia para el test estadístico. Por defecto 0.05.
-    with_individual_plot (bool): Si True, muestra histogramas individuales para cada característica. Por defecto False.
+    df (DataFrame): DataFrame que contiene las variables para las que queremos generar los gráficos pairplot.
+    target_col (string): Nombre de la variable del DataFrame considerada como target.
+    lista_columnas (lista) = Nombres de las columnas del DataFrame para las que queremos generar los gráficos pairplot
+    umbral_corr (float) = valor mínimo de correlación para seleccionar las variables.
+    umbral_pvalue (float) = valor máximo de pvalue para seleccionar las variables.
+    limite_pairplot (int) = valor máximo de variables a generar en los gráficos pairplot.
 
     Retorna:
-    list: Lista de características categóricas significativas seleccionadas.
+    Lista: devuelve una lista con los nombres de las columnas numéricas que cumplen las condiciones.
     """
-
-    # Verificación de entrada para target_col y columns
-    if not isinstance(target_col, str) or not isinstance(columns, list):
-        print("Error: target_col debe ser un string y columns debe ser una lista.")
-        return None
-
-    # Verificación de existencia de target_col en el DataFrame
+    
+    # Verificar los valores de entrada
+    if not isinstance(dataframe, pd.DataFrame):
+        raise ValueError("El primer argumento debe ser un dataframe.")
+    
     if target_col not in dataframe.columns:
-        print(f"Error: La columna {target_col} no existe en el DataFrame.")
-        return None
+        raise ValueError(f"La columna '{target_col}' no existe en el dataframe.")
     
-    # Verificación de tipo de pvalue
-    if not isinstance(pvalue, float) or pvalue <= 0 or pvalue >= 1:
-        print("Error: pvalue debe ser un valor float en el rango (0, 1).")
-        return None
+    if not isinstance(columns, list):
+        raise ValueError("El argumento 'columns' debe ser una lista.")
     
-    # Si no se proporciona ninguna columna, se seleccionan las columnas categóricas automáticamente
-    if len(columns) == 0:
-        columns = list(dataframe.select_dtypes(include=['object', 'category']).columns)
+    if not all(col in dataframe.columns for col in columns):
+        raise ValueError("Al menos una de las columnas especificadas en 'columns' no existe en el dataframe.")
     
-    # Obtención de características categóricas significativas
-    significant_features = get_features_cat_regression(dataframe, target_col, pvalue)
-    if significant_features is None:
-        return None
+    if not isinstance(pvalue, (float, int)):
+        raise ValueError("El argumento 'pvalue' debe ser un número.")
     
-    # Verificación de la existencia de características significativas
-    if len(significant_features) == 0:
-        print("No se encontraron características categóricas significativas.")
-        return None
+    if not isinstance(with_individual_plot, bool):
+        raise ValueError("El argumento 'with_individual_plot' debe ser un valor booleano.")
     
-    # Plot de histogramas agrupados para características categóricas significativas
-    for feature in significant_features:
-        plt.figure(figsize=(10, 6))
-        sns.histplot(data=dataframe, x=feature, hue=target_col, multiple="stack", palette= "viridis")
-        plt.title(f"Histograma agrupado para {feature} en relación con {target_col}")
-        plt.xlabel(feature)
-        plt.ylabel("Frecuencia")
-        plt.legend(title=target_col)
-        plt.show()
+    # Si la lista 'columns' está vacía, asignar las variables numéricas del dataframe
+    if not columns:
+        columns = dataframe.select_dtypes(include=['object']).columns.tolist()
+    
+    # Almacenar las columnas que cumplen las condiciones
+    significant_columns = []
+    
+    for col in columns:
+        # Realizar el test de chi-cuadrado entre la variable categórica y la target
+        contingency_table = pd.crosstab(dataframe[col], dataframe[target_col])
+        _, p_val, _, _ = chi2_contingency(contingency_table)
+        
+        # Comprobar si el p-valor es significativo
+        if p_val <= pvalue:
+            significant_columns.append(col)
+            
+    # Si se especifica, plotear el histograma agrupado
+    num_graficos = len(significant_columns) // 2
+    
+    if len(significant_columns) % 2 != 0:
+        num_graficos = num_graficos + 1
+    
+    if with_individual_plot:
+        fig, axs = plt.subplots(num_graficos, 2, figsize=(20, 20))
+        axs= axs.flatten()
+      
+    # Recorrer la lista de nombres de columnas y crear textos en cada subgráfico
+        for i in range(len(significant_columns)):
+            sns.histplot(data= dataframe,x = target_col , hue = significant_columns[i], ax= axs[i], kde=True)
 
-        # Plot de histogramas individuales si se especifica
-        if with_individual_plot:
-            for value in dataframe[feature].unique():
-                plt.figure(figsize=(6, 4))
-                sns.histplot(data=dataframe[dataframe[feature] == value], x=target_col, palette= 'green')
-                plt.title(f"Histograma de {target_col} para {feature}={value}")
-                plt.xlabel(target_col)
-                plt.ylabel("Frecuencia")
-                plt.show()
-    
-    return significant_features 
+        if len(significant_columns) % 2 != 0: 
+            axs[-1].axis("Off")
+                
+    return significant_columns
+
+#Ejemplo: plot_features_cat_regression(dataframe=df_vinos, target_col="quality", columns= [], pvalue=0.05, with_individual_plot=False)
 
 #####################################################################################################################
