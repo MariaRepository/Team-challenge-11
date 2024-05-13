@@ -89,10 +89,15 @@ def tipifica_variables(dataframe, umbral_categoria, umbral_continua):
             tipo_sugerido = "Categórica"
         else:
             if porcentaje_cardinalidad >= umbral_continua:
-                tipo_sugerido = "Numérica Continua"
+                if dataframe[columna].dtype != 'object':
+                    tipo_sugerido = "Numérica Continua"
+                else:
+                    tipo_sugerido = "Object"
             else:
-                tipo_sugerido = "Numérica Discreta"
-
+                if dataframe[columna].dtype != 'object':
+                    tipo_sugerido = "Numérica Discreta"
+                else:
+                    tipo_sugerido = "Object"
         # Agregar la sugerencia de tipo de variable a la lista
         sugerencias_tipos.append([columna, tipo_sugerido])
 
