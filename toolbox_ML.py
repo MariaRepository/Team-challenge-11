@@ -1,9 +1,32 @@
-import seaborn as sns
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
+# Bibliotecas
+
+from catboost import CatBoostClassifier, Pool
+from collections import Counter
 from scipy.stats import pearsonr
 from scipy.stats import chi2_contingency, f_oneway
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel, RFE
+from sklearn.feature_selection import mutual_info_classif # para calcular la información mutua entre las características categóricas y la columna objetivo.
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import StratifiedKFold 
+
+
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+
+import warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
+
 
 ### Funcion: describe_df 
 
@@ -499,6 +522,66 @@ def eval_model(target, predictions, problem_type, metrics):
 #####################################################################################################################
 
 ### Funcion: get_features_cat_classification (Brenda)
+
+def get_features_cat_classification(df, target_col, normalize=False, mi_threshold=0.0):
+    """
+    Selecciona las columnas categóricas en un DataFrame cuyo valor de información mutua con respecto a la columna objetivo
+    sea mayor o igual a un umbral especificado.
+
+    Argumentos:
+        df (pd.DataFrame): El DataFrame de entrada.
+        target_col (str): El nombre de la columna objetivo.
+        normalize (bool): Si True, normaliza los valores de información mutua. Por defecto es False.
+        mi_threshold (float): El umbral de información mutua para seleccionar características. Por defecto es 0.0.
+
+    Retorna:
+        list: Lista de las columnas categóricas que cumplen con el umbral de información mutua.
+    """
+    # Verificaciones de entrada
+        # Verifica si target_col está en el DataFrame.
+    if target_col not in df.columns:
+        print(f"Error: La columna '{target_col}' no está en el DataFrame.")
+        return None
+
+        # Verifica si target_col es categórica.
+    if not pd.api.types.is_categorical_dtype(df[target_col]) and not pd.api.types.is_object_dtype(df[target_col]):
+        print(f"Error: La columna '{target_col}' debe ser categórica.")
+        return None
+    
+        # Si normalize es True, verifica que mi_threshold sea un float entre 0 y 1.
+    if normalize and (not isinstance(mi_threshold, float) or not (0 <= mi_threshold <= 1)):
+        print("Error: 'mi_threshold' debe ser un float entre 0 y 1 cuando 'normalize' es True.")
+        return None
+    
+    # Seleccionar columnas categóricas
+        # Obtiene las columnas categóricas del DataFrame y excluye target_col.
+    cat_cols = df.select_dtypes(include=['category', 'object']).columns
+    if target_col in cat_cols:
+        cat_cols = cat_cols.drop(target_col)
+    
+    if len(cat_cols) == 0:
+        print("Error: No hay columnas categóricas para evaluar.")
+        return None
+    
+    # Calcular información mutua:
+        # Usa mutual_info_classif para calcular la información mutua entre las columnas categóricas y la columna objetivo.
+    mi = mutual_info_classif(df[cat_cols], df[target_col], discrete_features=True)
+    
+    # Normalización de información mutua si es necesario:
+        # Normaliza los valores de información mutua dividiendo por la suma total si normalize es True.
+    if normalize:
+        mi_sum = mi.sum()
+        if mi_sum == 0:
+            print("Error: La suma de información mutua es 0, no se puede normalizar.")
+            return None
+        mi = mi / mi_sum
+    
+    # Filtrar características basadas en el umbral:
+        #Filtra y selecciona las columnas cuyo valor de información mutua cumple con el umbral especificado (mi_threshold)
+    selected_features = [col for col, score in zip(cat_cols, mi) if score >= mi_threshold]
+    
+    # Retorna el resultado: Devuelve una lista de las características categóricas seleccionadas.
+    return selected_features
 
 
 #####################################################################################################################
