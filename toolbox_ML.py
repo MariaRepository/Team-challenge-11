@@ -364,6 +364,8 @@ def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.
 # TEAM CHALLENGE 17 #
 
 #####################################################################################################################
+
+### Funcion: eval_model (Alfonso)
 def eval_model(target, predictions, problem_type, metrics):
 
     """
@@ -483,3 +485,30 @@ def eval_model(target, predictions, problem_type, metrics):
         raise ValueError("Invalid problem type. Use 'regression' or 'classification'.")
 
     return tuple(results)
+
+#####################################################################################################################
+
+### Funcion: get_features_num_classification (Pepe)
+
+
+#####################################################################################################################
+
+### Funcion: plot_features_num_classification (María)
+
+
+#####################################################################################################################
+
+### Funcion: get_features_cat_classification (Brenda)
+
+
+#####################################################################################################################
+
+### Funcion: plot_features_cat_classification (Fernando)
+
+
+#####################################################################################################################
+
+### EXTRA: Funcion: super_selector (?)
+
+
+#####################################################################################################################
