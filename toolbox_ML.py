@@ -20,6 +20,7 @@ from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel, R
 from sklearn.feature_selection import mutual_info_classif # para calcular la información mutua entre las características categóricas y la columna objetivo.
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import StratifiedKFold 
+from sklearn.metrics import mutual_info_score
 
 
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
@@ -587,6 +588,71 @@ def get_features_cat_classification(df, target_col, normalize=False, mi_threshol
 #####################################################################################################################
 
 ### Funcion: plot_features_cat_classification (Fernando)
+
+'''import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import mutual_info_score'''
+
+
+
+# Definir la función plot_features_cat_classification
+def plot_features_cat_classification(df, target_col="", columns=[], mi_threshold=0.0, normalize=False):
+    """
+    Grafica la distribución de las clases objetivo para características categóricas en un dataframe,
+    filtradas por umbral de información mutua con respecto a la columna objetivo.
+
+    Argumentos:
+    df (DataFrame): DataFrame de entrada que contiene características categóricas y la columna objetivo.
+    target_col (str): Nombre de la columna objetivo. Por defecto es "".
+    columns (list of str): Lista de nombres de columnas a considerar. Si está vacía,
+                           se considerarán todas las columnas categóricas en df. Por defecto es [].
+    mi_threshold (float): Valor de umbral para la información mutua. Las características con MI
+                          mayor que este umbral se considerarán. Por defecto es 0.0.
+    normalize (bool): Si se debe normalizar los conteos en el gráfico. Por defecto es False.
+
+    Retorna:
+    None
+    """
+    
+    # Verifica si se proporcionó target_col y si está en el dataframe
+    if target_col != "" and target_col not in df.columns:
+        raise ValueError(f"La columna objetivo '{target_col}' no se encontró en las columnas del dataframe.")
+
+    # Si columns está vacía, selecciona todas las columnas categóricas de df
+    if not columns:
+        columns = [col for col in df.columns if df[col].dtype == 'object']
+
+    # Valida que las columnas existan en el dataframe
+    invalid_cols = [col for col in columns if col not in df.columns]
+    if invalid_cols:
+        raise ValueError(f"Las columnas {invalid_cols} no se encontraron en las columnas del dataframe.")
+
+    # Selecciona las columnas categóricas basadas en el umbral de información mutua si está especificado
+    selected_columns = []
+    for col in columns:
+        if target_col != "":
+            mi = mutual_info_score(df[col], df[target_col])
+            if mi > mi_threshold:
+                selected_columns.append(col)
+        else:
+            selected_columns.append(col)
+
+    # Grafica las distribuciones para las columnas categóricas seleccionadas
+    for col in selected_columns:
+        plt.figure(figsize=(10, 6))
+        if normalize:
+            sns.countplot(x=col, hue=target_col, data=df, palette='Set2', edgecolor='black')
+            plt.ylabel('Conteo Normalizado')
+        else:
+            sns.countplot(x=col, hue=target_col, data=df, palette='Set2', edgecolor='black')
+            plt.ylabel('Conteo')
+        plt.title(f'Distribución de {col} con respecto a {target_col}')
+        plt.xticks(rotation=45)
+        plt.legend(title=target_col)
+        plt.tight_layout()
+        plt.show()
+
 
 
 #####################################################################################################################
