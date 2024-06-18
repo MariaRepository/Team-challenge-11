@@ -640,9 +640,63 @@ def get_features_num_classification(df, target_col, p_value= 0.05):
 #####################################################################################################################
 
 ### Funcion: plot_features_num_classification (María)
+def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05):
+    """
+    Descripción: Realiza un análisis de clasificación entre una columna objetivo y las columnas numéricas de un DataFrame,
+    filtrando aquellas que tienen un valor p bajo según el test de ANOVA.
 
+    Argumentos:
+    df (DataFrame): El DataFrame que contiene los datos.
+    target_col (str): El nombre de la columna objetivo que se usará en el análisis de clasificación.
+    columns (list): Una lista de nombres de columnas a considerar. Si está vacía, se considerarán todas las columnas numéricas del DataFrame.
+    pvalue (float): El valor p máximo para considerar una columna como estadísticamente significativa.
 
+    Retorna:
+    list: Columnas que cumplen con los requisitos de significancia estadística.
+    """
+    # Verificación de la columna objetivo y obtención de columnas válidas
+    if not target_col:
+        raise ValueError("El argumento 'target_col' no puede estar vacío.")
+    
+    valid_columns = get_features_num_classification(df, target_col, p_value=pvalue)
+    if valid_columns is None:
+        return []
 
+    # Si columns no está vacío, filtrar valid_columns para mantener solo las especificadas en columns
+    if columns:
+        valid_columns = [col for col in valid_columns if col in columns]
+
+    # Obtener valores únicos de target_col
+    unique_target_values = df[target_col].unique()
+    
+    # Dividir las columnas en grupos de máximo cuatro adicionales, incluyendo siempre target_col para un total de cinco
+    for i in range(0, len(valid_columns), 5):
+        selected_columns = valid_columns[i:i+5]
+        columns_to_plot = [target_col] + selected_columns  # Siempre incluir target_col
+        
+        for j in range(0, len(unique_target_values), 5):
+            current_target_values = unique_target_values[j:j+5]
+            df_filtered = df[df[target_col].isin(current_target_values)]
+            
+            g = sns.pairplot(df_filtered[columns_to_plot], 
+                             hue=target_col, 
+                             kind='reg', 
+                             diag_kind='kde',
+                             plot_kws={'scatter_kws': {'s': 10}},  # Tamaño de los puntos ajustado
+                             height=2.5)  # Tamaño de la figura ajustado
+            
+            # Ajustar los títulos y las etiquetas de los ejes
+            g.fig.suptitle(f'{target_col} y columnas: {", ".join(selected_columns)}', y=1.02)
+            for ax in g.axes.flatten():
+                ax.set_xlabel(ax.get_xlabel(), fontsize=12)
+                ax.set_ylabel(ax.get_ylabel(), fontsize=12)
+            
+            plt.show()
+    
+    return valid_columns
+
+# Ejemplo de uso
+# plot_features_num_classification(df, target_col="target", columns=[], pvalue=0.05)
 
 #####################################################################################################################
 
