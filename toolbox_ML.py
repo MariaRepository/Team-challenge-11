@@ -563,10 +563,10 @@ def get_features_num_classification(df, target_col, p_value= 0.05):
     columnas_validas= []
     #limite = 1- p_value #No stoy seguro si hacerlo asi o directamente p_value
 
-    # df_name = [nombre for nombre, valor in globals().items() if valor is df][0] #Con esto convierto el nombre del dataframe en una variable
+    df_name = [nombre for nombre, valor in globals().items() if valor is df][0] 
 
     if isinstance(df, pd.DataFrame):
-        print(f"El DataFrame es válido") # He cambiado esto porque daba error con globals()
+        print(f"{df_name} es válido") 
     else:
         print(f"El primer termino introducido no es un dataframe, repase la llamada a la función")
         return 
