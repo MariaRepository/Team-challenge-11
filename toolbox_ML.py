@@ -1,33 +1,82 @@
-# Bibliotecas
+# *********************************************
+# FUNCIONES CONTENIDAS Y EJEMPLO DE USO
+# *********************************************
 
-from catboost import CatBoostClassifier, Pool
+    # describe_df -> describe_df(dataframe)
+    # tipifica_variables -> tipifica_variables(dataframe, umbral_categoria, umbral_continua)
+    # get_features_num_regression -> get_features_num_regression(df, target_col, umbral_corr, pvalue=None)
+    # plot_features_num_regression -> plot_features_num_regression(df, target_col="", columns=[], umbral_corr=0, pvalue=None)
+    # get_features_cat_regression -> get_features_cat_regression(dataframe, target_col, pvalue=0.05)
+    # plot_features_cat_regression -> plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.05, with_individual_plot=False)
+
+    # eval_model -> eval_model(target, predictions, problem_type, metrics)
+        # Ejemplos de uso:
+            # eval_model(y_true, y_pred, 'regression', ['RMSE', 'MAE', 'GRAPH'])
+            # eval_model(y_true, y_pred, 'classification', ['ACCURACY', 'PRECISION', 'RECALL', 'MATRIX', 'PRECISION_1', 'RECALL_2'])
+    # get_features_num_classification -> get_features_num_classification(df, target_col, p_value= 0.05)
+    # plot_features_num_classification ->
+    # get_features_cat_classification -> get_features_cat_classification(df, target_col, normalize=False, mi_threshold=0.0)
+    # plot_features_cat_classification -> plot_features_cat_classification(df, target_col="", columns=[], mi_threshold=0.0, normalize=False)
+    # super_selector -> super_selector(dataset, target_col="", selectores=None, hard_voting=[])
+        #Ejemplo: 
+            # selectores = {
+                # "KBest": 5,
+                # "FromModel": [RandomForestClassifier(), 5],
+                # "RFE": [LogisticRegression(), 5, 1],
+                # "SFS": [RandomForestClassifier(), 5] }
+
+#############################################################################################################################
+
+# ****************************************************
+# BIBLIOTECAS
+# ****************************************************
+
+# Para el manejo y análisis de datos
+import pandas as pd
+import numpy as np
 from collections import Counter
+
+# Para la visualización de datos
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Para el análisis estadístico
 from scipy.stats import pearsonr
 from scipy.stats import chi2_contingency, f_oneway
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+# Para la evaluación de modelos
+from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.linear_model import LinearRegression, LogisticRegression
+
+# Para la preparación de datos y modelos
+from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel, RFE
-from sklearn.feature_selection import mutual_info_classif # para calcular la información mutua entre las características categóricas y la columna objetivo.
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import StratifiedKFold 
-from sklearn.metrics import mutual_info_score
 
+# Modelos de regresión
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
+# Selección de características
+from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel, RFE, mutual_info_classif, SequentialFeatureSelector
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 
+# Modelos de ensamble
+from sklearn.ensemble import RandomForestClassifier
+
+# Para el cálculo de la información mutua
+from sklearn.metrics import mutual_info_score
+
+# Para el uso de CatBoost
+from catboost import CatBoostClassifier, Pool
+
+# Para ignorar advertencias
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
+
+# ************************************************************************
+# FUNCIONES
+# ************************************************************************
 
 ### Funcion: describe_df 
 
@@ -514,11 +563,140 @@ def eval_model(target, predictions, problem_type, metrics):
 
 ### Funcion: get_features_num_classification (Pepe)
 
+def get_features_num_classification(df, target_col, p_value= 0.05): 
+    """Esta función toma como argumentos un dataframe de pandas, una columna que será la columna objetivo (el target) 
+    y un valor de p-value que por defecto es 0.05.
+
+    La función verifica si el primer argumento es un dataframe válido y si la columna objetivo está presente en dicho dataframe. 
+    Luego, selecciona las columnas numéricas del dataframe que no son la columna objetivo y verifica si la columna objetivo 
+    cumple con los tipos de datos válidos para el análisis (categórico, entero, booleano u objeto).
+
+    Posteriormente, realiza un test ANOVA para cada columna numérica seleccionada, evaluando si existe una relación 
+    estadísticamente significativa con la columna objetivo basada en el p-value proporcionado. Devuelve una lista de 
+    columnas numéricas que cumplen con el criterio de relación ANOVA especificado por el p-value.
+    """
+    columnas_num= [] 
+    columnas_validas= []
+    #limite = 1- p_value #No stoy seguro si hacerlo asi o directamente p_value
+
+    df_name = [nombre for nombre, valor in globals().items() if valor is df][0] #Con esto convierto el nombre del dataframe en una variable
+
+    if isinstance(df, pd.DataFrame):
+        print(f"{df_name} es un DataFrame")
+    else:
+        print(f"El primer termino introducido no es un dataframe, repase la llamada a la función")
+        return 
+
+    if target_col not in df.columns:
+        print(f"{target_col} no es una columna del dataframe df")
+        return
+    
+    tipos_validos = ['category', 'int64', 'bool', 'object']
+    tipo_columna = df[target_col].dtype
+    if tipo_columna not in tipos_validos:
+        print(f"La columna '{target_col}' no es categórica ni discreta, revisa la llamada a la funcion.")
+        return 
+    
+    if pd.api.types.is_integer_dtype(df[target_col]) and df[target_col].nunique() >= 15: # Este "15" es el maximo a partir del cual avisa de la alta cardinalidad.
+        print(f"¡OJO!.. La columna '{target_col}' tiene alta cardinalidad (> 15 categorías).")
+    
+    columnas_pre_num = df.select_dtypes(include=['number']).columns.tolist() 
+    columnas_num= [] 
+    
+    for columna_numericas in columnas_pre_num:
+        if columna_numericas != target_col: #Con esto nos aseguramos de no incluir el target.
+            columnas_num.append(columna_numericas)
+        elif columna_numericas == target_col:
+            print("La columna objetivo no ha sido incluida en la lista.")
+    
+    if any(df[column].isnull().any() for column in columnas_num):
+        print("ALGUNA DE SUS COLUMNAS NUMÉRICAS TIENE DATOS FALTANTES O ERRÓNEOS, LIMPIE SU DATAFRAME ANTES DE CONTINUAR")
+        return
+    
+    for columna in columnas_num:
+        grupos = []
+        for categoria in df[target_col].unique():
+            grupos.append(df[columna][df[target_col] == categoria])
+    
+        anova_result = f_oneway(*grupos)
+        valor_de_p = anova_result.pvalue
+        if valor_de_p <= 1-p_value: 
+            columnas_validas.append(columna)
+
+
+    cantidad_elementos = len(columnas_validas)
+    if cantidad_elementos == 0:
+        print("NO HAY COLUMNAS QUE CUMPLAN LOS REQUISITOS")
+        return
+    if cantidad_elementos == 1:
+        print("Solo una columna cumple los requisitos:")
+        print(f"El valor de pvalue es {anova_result.pvalue}")
+        return columnas_validas
+    if cantidad_elementos > 1:
+        print("Las columnas que cumplen requisitos son:")
+        return columnas_validas
+
 
 #####################################################################################################################
 
 ### Funcion: plot_features_num_classification (María)
+def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05):
+    """
+    Descripción: Realiza un análisis de clasificación entre una columna objetivo y las columnas numéricas de un DataFrame,
+    filtrando aquellas que tienen un valor p bajo según el test de ANOVA.
 
+    Argumentos:
+    df (DataFrame): El DataFrame que contiene los datos.
+    target_col (str): El nombre de la columna objetivo que se usará en el análisis de clasificación.
+    columns (list): Una lista de nombres de columnas a considerar. Si está vacía, se considerarán todas las columnas numéricas del DataFrame.
+    pvalue (float): El valor p máximo para considerar una columna como estadísticamente significativa.
+
+    Retorna:
+    list: Columnas que cumplen con los requisitos de significancia estadística.
+    """
+    # Verificación de la columna objetivo y obtención de columnas válidas
+    if not target_col:
+        raise ValueError("El argumento 'target_col' no puede estar vacío.")
+    
+    valid_columns = get_features_num_classification(df, target_col, p_value=pvalue)
+    if valid_columns is None:
+        return []
+
+    # Si columns no está vacío, filtrar valid_columns para mantener solo las especificadas en columns
+    if columns:
+        valid_columns = [col for col in valid_columns if col in columns]
+
+    # Obtener valores únicos de target_col
+    unique_target_values = df[target_col].unique()
+    
+    # Dividir las columnas en grupos de máximo cuatro adicionales, incluyendo siempre target_col para un total de cinco
+    for i in range(0, len(valid_columns), 5):
+        selected_columns = valid_columns[i:i+5]
+        columns_to_plot = [target_col] + selected_columns  # Siempre incluir target_col
+        
+        for j in range(0, len(unique_target_values), 5):
+            current_target_values = unique_target_values[j:j+5]
+            df_filtered = df[df[target_col].isin(current_target_values)]
+            
+            g = sns.pairplot(df_filtered[columns_to_plot], 
+                             hue=target_col, 
+                             kind='reg', 
+                             diag_kind='kde',
+                             plot_kws={'scatter_kws': {'s': 10}},  # Tamaño de los puntos ajustado
+                             height=2.5)  # Tamaño de la figura ajustado
+            
+            # Ajustar los títulos y las etiquetas de los ejes
+            g.fig.suptitle(f'{target_col} y columnas: {", ".join(selected_columns)}', y=1.02)
+            for ax in g.axes.flatten():
+                ax.set_xlabel(ax.get_xlabel(), fontsize=12)
+                ax.set_ylabel(ax.get_ylabel(), fontsize=12)
+            
+            plt.show()
+    
+    return valid_columns
+
+# Ejemplo de uso
+# plot_features_num_classification(df, target_col="target", columns=[], pvalue=0.05)
 
 #####################################################################################################################
 
@@ -657,7 +835,119 @@ def plot_features_cat_classification(df, target_col="", columns=[], mi_threshold
 
 #####################################################################################################################
 
-### EXTRA: Funcion: super_selector (?)
+### EXTRA: Funcion: super_selector
 
+def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
+    """
+    Función Super Selector para seleccionar características de un dataset basándose en varios métodos de selección de características.
+
+    Parámetros:
+    dataset (pd.DataFrame): El dataframe de entrada que contiene las características y la columna objetivo.
+    target_col (str): El nombre de la columna objetivo. Si está vacío, no se realizará una selección basada en el objetivo.
+    selectores (dict): Un diccionario que especifica los métodos de selección de características y sus parámetros.
+        Claves posibles y sus valores esperados:
+            - "KBest": int, número de características a seleccionar usando SelectKBest con ANOVA.
+            - "FromModel": lista, que contiene un estimador y un valor de umbral o un entero para características máximas.
+            - "RFE": tupla, que contiene un estimador, número de características a seleccionar y valor de step.
+            - "SFS": tupla, que contiene un estimador y número de características a seleccionar usando Sequential Feature Selector.
+    hard_voting (list): Una lista inicial de características para incluir en el proceso de hard voting.
+
+    Retorno:
+    dict: Un diccionario con claves correspondientes a los selectores proporcionados y sus listas de características seleccionadas,
+          y una clave adicional "hard_voting" con las características más votadas en todos los métodos.
+          
+    Ejemplo:
+    >>> selectores = {
+    >>>     "KBest": 5,
+    >>>     "FromModel": [RandomForestClassifier(), 5],
+    >>>     "RFE": [LogisticRegression(), 5, 1],
+    >>>     "SFS": [RandomForestClassifier(), 5]
+    >>> }
+    >>> 
+    >>> result = super_selector(dataset, target_col="Survived", selectores=selectores, hard_voting=[])
+    >>> print(result)
+    """
+    if selectores is None:
+        selectores = {}
+
+    # Validamos que target_col sea una columna válida del dataframe
+    if target_col and target_col not in dataset.columns:
+        raise ValueError(f"{target_col} is not a valid column in the dataset")
+
+    # Lista de todas las features, excluyendo target_col
+    feature_cols = [col for col in dataset.columns if col != target_col]
+    X = dataset[feature_cols]
+    y = dataset[target_col] if target_col else None
+
+    selected_features = {}
+
+    if not selectores:
+        # Si selectores es un diccionario vacío o None
+        features = []
+        for col in feature_cols:
+            unique_vals = dataset[col].nunique()
+            if unique_vals == 1 or unique_vals == len(dataset):
+                continue
+            features.append(col)
+        selected_features['all_features'] = features
+    else:
+        if "KBest" in selectores:
+            k = selectores["KBest"]
+            kbest_selector = SelectKBest(f_classif, k=k)
+            kbest_selector.fit(X, y)
+            kbest_features = [feature_cols[i] for i in kbest_selector.get_support(indices=True)]
+            selected_features["KBest"] = kbest_features
+
+        if "FromModel" in selectores:
+            model, threshold = selectores["FromModel"]
+            if isinstance(threshold, int):
+                sfm_selector = SelectFromModel(model, max_features=threshold, threshold=-np.inf)
+            else:
+                sfm_selector = SelectFromModel(model, threshold=threshold)
+            sfm_selector.fit(X, y)
+            sfm_features = [feature_cols[i] for i in sfm_selector.get_support(indices=True)]
+            selected_features["FromModel"] = sfm_features
+
+        if "RFE" in selectores:
+            model, n_features_to_select, step = selectores["RFE"]
+            rfe_selector = RFE(model, n_features_to_select=n_features_to_select, step=step)
+            rfe_selector.fit(X, y)
+            rfe_features = [feature_cols[i] for i in rfe_selector.get_support(indices=True)]
+            selected_features["RFE"] = rfe_features
+
+        if "SFS" in selectores:
+            model, k_features = selectores["SFS"]
+            sfs_selector = SequentialFeatureSelector(model, n_features_to_select=k_features, direction='forward')
+            sfs_selector.fit(X, y)
+            sfs_features = [feature_cols[i] for i in sfs_selector.get_support(indices=True)]
+            selected_features["SFS"] = sfs_features
+
+    # Hard voting
+    all_features = []
+    for key in selected_features:
+        all_features.extend(selected_features[key])
+
+    if hard_voting:
+        all_features.extend(hard_voting)
+
+    feature_counts = pd.Series(all_features).value_counts()
+    most_voted_features = feature_counts[feature_counts > 1].index.tolist()
+
+    if not most_voted_features:
+        most_voted_features = feature_counts.index.tolist()
+
+    selected_features["hard_voting"] = most_voted_features
+
+    return selected_features
+
+# Ejemplo de uso
+selectores = {
+    "KBest": 5,
+    "FromModel": [RandomForestClassifier(), 5],
+    "RFE": [LogisticRegression(), 5, 1],
+    "SFS": [RandomForestClassifier(), 5]
+}
+
+super_selector(dataset, target_col=" ", selectores=selectores, hard_voting=[])
 
 #####################################################################################################################
