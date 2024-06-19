@@ -1,22 +1,32 @@
 # *********************************************
-# FUNCIONES CONTENIDAS Y EJEMPLO DE USO
+### FUNCIONES CONTENIDAS Y EJEMPLO DE USO ###
 # *********************************************
 
     # describe_df -> describe_df(dataframe)
+
     # tipifica_variables -> tipifica_variables(dataframe, umbral_categoria, umbral_continua)
+
     # get_features_num_regression -> get_features_num_regression(df, target_col, umbral_corr, pvalue=None)
+
     # plot_features_num_regression -> plot_features_num_regression(df, target_col="", columns=[], umbral_corr=0, pvalue=None)
+
     # get_features_cat_regression -> get_features_cat_regression(dataframe, target_col, pvalue=0.05)
+
     # plot_features_cat_regression -> plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.05, with_individual_plot=False)
 
     # eval_model -> eval_model(target, predictions, problem_type, metrics)
         # Ejemplos de uso:
             # eval_model(y_true, y_pred, 'regression', ['RMSE', 'MAE', 'GRAPH'])
             # eval_model(y_true, y_pred, 'classification', ['ACCURACY', 'PRECISION', 'RECALL', 'MATRIX', 'PRECISION_1', 'RECALL_2'])
+
     # get_features_num_classification -> get_features_num_classification(df, target_col, p_value= 0.05)
-    # plot_features_num_classification ->
+
+    # plot_features_num_classification -> plot_features_num_classification(df, target_col="target", columns=[], pvalue=0.05)
+
     # get_features_cat_classification -> get_features_cat_classification(df, target_col, normalize=False, mi_threshold=0.0)
+
     # plot_features_cat_classification -> plot_features_cat_classification(df, target_col="", columns=[], mi_threshold=0.0, normalize=False)
+
     # super_selector -> super_selector(dataset, target_col="", selectores=None, hard_voting=[])
         #Ejemplo: 
             # selectores = {
@@ -28,7 +38,7 @@
 #############################################################################################################################
 
 # ****************************************************
-# BIBLIOTECAS
+### BIBLIOTECAS ###
 # ****************************************************
 
 # Para el manejo y análisis de datos
@@ -52,13 +62,14 @@ from sklearn.metrics import classification_report, confusion_matrix, ConfusionMa
 # Para la preparación de datos y modelos
 from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder
 
 # Modelos de regresión
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 # Selección de características
 from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel, RFE, mutual_info_classif, SequentialFeatureSelector
-from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+# from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 
 # Modelos de ensamble
 from sklearn.ensemble import RandomForestClassifier
@@ -75,7 +86,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 
 
 # ************************************************************************
-# FUNCIONES
+### FUNCIONES ###
 # ************************************************************************
 
 ### Funcion: describe_df 
@@ -439,125 +450,98 @@ def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.
 #####################################################################################################################
 
 ### Funcion: eval_model (Alfonso)
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import (mean_squared_error, mean_absolute_error, 
+                             mean_absolute_percentage_error, accuracy_score, 
+                             precision_score, recall_score, classification_report, 
+                             confusion_matrix, ConfusionMatrixDisplay)
+
 def eval_model(target, predictions, problem_type, metrics):
+    results = {}
+    target = np.array(target)
+    predictions = np.array(predictions)
 
-    """
-    Evalúa un modelo de regresión o clasificación en base a un conjunto de métricas especificadas.
-
-    Parámetros:
-    target : array tipo y_train
-        Valores verdaderos de la target
-    predictions : array tipo y_predict
-        Valores predichos por el modelo.
-    problem_type : str
-        Tipo de problema ('regression' o 'classification').
-    metrics : list of str
-        Lista de métricas a calcular. 
-        - Para regresión: ['RMSE', 'MAE', 'MAPE', 'GRAPH']
-        - Para clasificación: ['ACCURACY', 'PRECISION', 'RECALL', 'CLASS_REPORT', 'MATRIX', 'MATRIX_RECALL', 'MATRIX_PRED', 'PRECISION_X', 'RECALL_X']
-          donde 'X' es una etiqueta de alguna de las clases del target.
-
-    Retorna:
-    tuple
-        Tupla con los resultados de las métricas calculadas en el orden especificado en la lista de métricas. 
-        Las métricas que no devuelven valores numéricos retornan None en su lugar.
-
-    Excepciones:
-    ValueError
-        Se lanza si ocurre un error en el cálculo de una métrica, si se especifica una métrica no soportada,
-        Si el tipo de problema es inválido, o si se especifica una clase que no está presente en el target.
-
-    Ejemplos de uso:
-    >>> eval_model(y_true, y_pred, 'regression', ['RMSE', 'MAE', 'GRAPH'])
-    >>> eval_model(y_true, y_pred, 'classification', ['ACCURACY', 'PRECISION', 'RECALL', 'MATRIX', 'PRECISION_1', 'RECALL_2'])
-    """
-
-    results = []
-    
     if problem_type == "regression":
         for metric in metrics:
             if metric == "RMSE":
                 rmse = np.sqrt(mean_squared_error(target, predictions))
-                print(f"RMSE: {rmse}")
-                results.append(rmse)
+                print(f"RMSE: {rmse:.3f}")
+                results['RMSE'] = round(rmse, 3)
             elif metric == "MAE":
                 mae = mean_absolute_error(target, predictions)
-                print(f"MAE: {mae}")
-                results.append(mae)
+                print(f"MAE: {mae:.3f}")
+                results['MAE'] = round(mae, 3)
             elif metric == "MAPE":
-                try:
+                if np.any(target == 0):
+                    print("MAPE no se puede calcular porque hay valores reales que son cero.")
+                    results['MAPE'] = None
+                else:
                     mape = mean_absolute_percentage_error(target, predictions)
-                    print(f"MAPE: {mape}")
-                    results.append(mape)
-                except Exception as e:
-                    raise ValueError("Error calculating MAPE: " + str(e))
+                    print(f"MAPE: {mape:.3f}")
+                    results['MAPE'] = round(mape, 3)
             elif metric == "GRAPH":
                 plt.scatter(target, predictions)
-                plt.xlabel("True Values")
-                plt.ylabel("Predictions")
-                plt.title("True vs Predicted Values")
+                plt.xlabel("Valores Reales")
+                plt.ylabel("Predicciones")
+                plt.title("Valores Reales vs Predicciones")
                 plt.show()
-                results.append(None)
+                results['GRAPH'] = None
             else:
-                raise ValueError(f"Unsupported regression metric: {metric}")
+                print(f"Métrica de regresión no soportada: {metric}")
+                results[metric] = None
 
     elif problem_type == "classification":
+        unique_classes = np.unique(target)
+        print(f"Clases únicas en el objetivo: {unique_classes}")
+
         for metric in metrics:
             if metric == "ACCURACY":
                 accuracy = accuracy_score(target, predictions)
-                print(f"Accuracy: {accuracy}")
-                results.append(accuracy)
+                print(f"Accuracy: {accuracy:.3f}")
+                results['ACC'] = round(accuracy, 3)
             elif metric == "PRECISION":
-                precision = precision_score(target, predictions, average='weighted')
-                print(f"Precision: {precision}")
-                results.append(precision)
+                precision = precision_score(target, predictions, average='weighted', zero_division=0)
+                print(f"Precision: {precision:.3f}")
+                results['PREC'] = round(precision, 3)
             elif metric == "RECALL":
-                recall = recall_score(target, predictions, average='weighted')
-                print(f"Recall: {recall}")
-                results.append(recall)
+                recall = recall_score(target, predictions, average='weighted', zero_division=0)
+                print(f"Recall: {recall:.3f}")
+                results['REC'] = round(recall, 3)
             elif metric == "CLASS_REPORT":
                 report = classification_report(target, predictions)
-                print("Classification Report:\n", report)
-                results.append(None)
+                print("Informe de Clasificación:\n", report)
+                results['REPORT'] = None
             elif metric == "MATRIX":
                 matrix = confusion_matrix(target, predictions)
                 disp = ConfusionMatrixDisplay(confusion_matrix=matrix)
                 disp.plot()
                 plt.show()
-                results.append(None)
-            elif metric == "MATRIX_RECALL":
-                matrix_recall = confusion_matrix(target, predictions, normalize='true')
-                disp = ConfusionMatrixDisplay(confusion_matrix=matrix_recall)
-                disp.plot()
-                plt.show()
-                results.append(None)
-            elif metric == "MATRIX_PRED":
-                matrix_pred = confusion_matrix(target, predictions, normalize='pred')
-                disp = ConfusionMatrixDisplay(confusion_matrix=matrix_pred)
-                disp.plot()
-                plt.show()
-                results.append(None)
-            elif metric.startswith("PRECISION_"):
+                results['MATRIX'] = None
+            elif metric.startswith("PRECISION_") or metric.startswith("RECALL_"):
                 class_label = metric.split("_")[1]
-                if class_label not in np.unique(target):
-                    raise ValueError(f"Class label {class_label} not found in target labels.")
-                precision_class = precision_score(target, predictions, labels=[class_label], average='weighted')
-                print(f"Precision for {class_label}: {precision_class}")
-                results.append(precision_class)
-            elif metric.startswith("RECALL_"):
-                class_label = metric.split("_")[1]
-                if class_label not in np.unique(target):
-                    raise ValueError(f"Class label {class_label} not found in target labels.")
-                recall_class = recall_score(target, predictions, labels=[class_label], average='weighted')
-                print(f"Recall for {class_label}: {recall_class}")
-                results.append(recall_class)
+                if class_label.isdigit() and int(class_label) in unique_classes:
+                    if metric.startswith("PRECISION_"):
+                        precision_class = precision_score(target, predictions, labels=[int(class_label)], average='weighted', zero_division=0)
+                        print(f"Precision para la clase {class_label}: {precision_class:.3f}")
+                        results[f'PREC_{class_label}'] = round(precision_class, 3)
+                    elif metric.startswith("RECALL_"):
+                        recall_class = recall_score(target, predictions, labels=[int(class_label)], average='weighted', zero_division=0)
+                        print(f"Recall para la clase {class_label}: {recall_class:.3f}")
+                        results[f'REC_{class_label}'] = round(recall_class, 3)
+                else:
+                    print(f"La etiqueta de clase {class_label} no se encuentra en las etiquetas objetivo. Clases disponibles: {unique_classes}")
+                    results[f'{metric}_{class_label}'] = None
             else:
-                raise ValueError(f"Unsupported classification metric: {metric}")
+                print(f"Métrica de clasificación no soportada: {metric}")
+                results[metric] = None
 
     else:
-        raise ValueError("Invalid problem type. Use 'regression' or 'classification'.")
+        raise ValueError("Por favor, usa 'regression' o 'classification' para el tipo de problema.")
 
-    return tuple(results)
+    return results
+
+
 
 #####################################################################################################################
 
@@ -579,10 +563,10 @@ def get_features_num_classification(df, target_col, p_value= 0.05):
     columnas_validas= []
     #limite = 1- p_value #No stoy seguro si hacerlo asi o directamente p_value
 
-    df_name = [nombre for nombre, valor in globals().items() if valor is df][0] #Con esto convierto el nombre del dataframe en una variable
+    # df_name = [nombre for nombre, valor in globals().items() if valor is df][0] #Con esto convierto el nombre del dataframe en una variable
 
     if isinstance(df, pd.DataFrame):
-        print(f"{df_name} es un DataFrame")
+        print(f"El DataFrame es válido") # He cambiado esto porque daba error con globals()
     else:
         print(f"El primer termino introducido no es un dataframe, repase la llamada a la función")
         return 
@@ -702,7 +686,7 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
 
 ### Funcion: get_features_cat_classification (Brenda)
 
-def get_features_cat_classification(df, target_col, normalize=False, mi_threshold=0.0):
+def get_features_cat_classification_(df, target_col, normalize=False, mi_threshold=0.0):
     """
     Selecciona las columnas categóricas en un DataFrame cuyo valor de información mutua con respecto a la columna objetivo
     sea mayor o igual a un umbral especificado.
@@ -761,6 +745,51 @@ def get_features_cat_classification(df, target_col, normalize=False, mi_threshol
     
     # Retorna el resultado: Devuelve una lista de las características categóricas seleccionadas.
     return selected_features
+
+
+### Función propuesta
+def get_features_cat_classification(df, target_col, normalize=False, mi_threshold=0):
+    # Comprobaciones de entrada
+    if target_col not in df.columns:
+        print("Error: target_col no está en el dataframe.")
+        return None
+    
+    if not isinstance(df[target_col].dtype, pd.CategoricalDtype) and not pd.api.types.is_object_dtype(df[target_col]):
+        print("Error: target_col debe ser una variable categórica.")
+        return None
+    
+    if normalize and not (0 <= mi_threshold <= 1):
+        print("Error: mi_threshold debe ser un float entre 0 y 1 cuando normalize es True.")
+        return None
+    
+    # Selección de columnas categóricas
+    cat_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    
+    if target_col in cat_columns:
+        cat_columns.remove(target_col)
+    
+    if len(cat_columns) == 0:
+        print("Error: No hay columnas categóricas en el dataframe.")
+        return None
+    
+    # OneHotEncoding de las columnas categóricas
+    encoder = OneHotEncoder(drop='first')
+    X_encoded = encoder.fit_transform(df[cat_columns])
+    
+    # Cálculo de la mutual information
+    mi = mutual_info_classif(X_encoded, df[target_col])
+    
+    if normalize:
+        mi_sum = np.sum(mi)
+        if mi_sum == 0:
+            print("Error: La suma de la mutual information es cero, no se puede normalizar.")
+            return None
+        mi_normalized = mi / mi_sum
+        selected_columns = [col for col, val in zip(cat_columns, mi_normalized) if val >= mi_threshold]
+    else:
+        selected_columns = [col for col, val in zip(cat_columns, mi) if val >= mi_threshold]
+    
+    return selected_columns
 
 
 #####################################################################################################################
@@ -948,6 +977,7 @@ selectores = {
     "SFS": [RandomForestClassifier(), 5]
 }
 
-super_selector(dataset, target_col=" ", selectores=selectores, hard_voting=[])
+# Ejemplo de uso:
+# super_selector(dataset, target_col=" ", selectores=selectores, hard_voting=[])
 
 #####################################################################################################################
