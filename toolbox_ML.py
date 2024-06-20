@@ -51,28 +51,29 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Para el análisis estadístico
-from scipy.stats import pearsonr
-from scipy.stats import chi2_contingency, f_oneway
+from scipy.stats import pearsonr, chi2_contingency, f_oneway
 
 # Para la evaluación de modelos
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
+
 
 # Para la preparación de datos y modelos
 from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Selección de características
+from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel, RFE, mutual_info_classif, SequentialFeatureSelector, f_regression
+# from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+
 
 # Modelos de regresión
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
-# Selección de características
-from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel, RFE, mutual_info_classif, SequentialFeatureSelector
-# from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-
 # Modelos de ensamble
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 # Para el cálculo de la información mutua
 from sklearn.metrics import mutual_info_score
@@ -83,6 +84,7 @@ from catboost import CatBoostClassifier, Pool
 # Para ignorar advertencias
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
+from sklearn.exceptions import NotFittedError
 
 
 # ************************************************************************
@@ -450,12 +452,6 @@ def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.
 #####################################################################################################################
 
 ### Funcion: eval_model (Alfonso)
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.metrics import (mean_squared_error, mean_absolute_error, 
-                             mean_absolute_percentage_error, accuracy_score, 
-                             precision_score, recall_score, classification_report, 
-                             confusion_matrix, ConfusionMatrixDisplay)
 
 def eval_model(target, predictions, problem_type, metrics):
     results = {}
@@ -686,7 +682,7 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
 
 ### Funcion: get_features_cat_classification (Brenda)
 
-def get_features_cat_classification_(df, target_col, normalize=False, mi_threshold=0.0):
+def get_features_cat_classification(df, target_col, normalize=False, mi_threshold=0):
     """
     Selecciona las columnas categóricas en un DataFrame cuyo valor de información mutua con respecto a la columna objetivo
     sea mayor o igual a un umbral especificado.
@@ -700,55 +696,9 @@ def get_features_cat_classification_(df, target_col, normalize=False, mi_thresho
     Retorna:
         list: Lista de las columnas categóricas que cumplen con el umbral de información mutua.
     """
-    # Verificaciones de entrada
-        # Verifica si target_col está en el DataFrame.
-    if target_col not in df.columns:
-        print(f"Error: La columna '{target_col}' no está en el DataFrame.")
-        return None
-
-        # Verifica si target_col es categórica.
-    if not pd.api.types.is_categorical_dtype(df[target_col]) and not pd.api.types.is_object_dtype(df[target_col]):
-        print(f"Error: La columna '{target_col}' debe ser categórica.")
-        return None
-    
-        # Si normalize es True, verifica que mi_threshold sea un float entre 0 y 1.
-    if normalize and (not isinstance(mi_threshold, float) or not (0 <= mi_threshold <= 1)):
-        print("Error: 'mi_threshold' debe ser un float entre 0 y 1 cuando 'normalize' es True.")
-        return None
-    
-    # Seleccionar columnas categóricas
-        # Obtiene las columnas categóricas del DataFrame y excluye target_col.
-    cat_cols = df.select_dtypes(include=['category', 'object']).columns
-    if target_col in cat_cols:
-        cat_cols = cat_cols.drop(target_col)
-    
-    if len(cat_cols) == 0:
-        print("Error: No hay columnas categóricas para evaluar.")
-        return None
-    
-    # Calcular información mutua:
-        # Usa mutual_info_classif para calcular la información mutua entre las columnas categóricas y la columna objetivo.
-    mi = mutual_info_classif(df[cat_cols], df[target_col], discrete_features=True)
-    
-    # Normalización de información mutua si es necesario:
-        # Normaliza los valores de información mutua dividiendo por la suma total si normalize es True.
-    if normalize:
-        mi_sum = mi.sum()
-        if mi_sum == 0:
-            print("Error: La suma de información mutua es 0, no se puede normalizar.")
-            return None
-        mi = mi / mi_sum
-    
-    # Filtrar características basadas en el umbral:
-        #Filtra y selecciona las columnas cuyo valor de información mutua cumple con el umbral especificado (mi_threshold)
-    selected_features = [col for col, score in zip(cat_cols, mi) if score >= mi_threshold]
-    
-    # Retorna el resultado: Devuelve una lista de las características categóricas seleccionadas.
-    return selected_features
 
 
-### Función propuesta
-def get_features_cat_classification(df, target_col, normalize=False, mi_threshold=0):
+
     # Comprobaciones de entrada
     if target_col not in df.columns:
         print("Error: target_col no está en el dataframe.")
@@ -796,14 +746,7 @@ def get_features_cat_classification(df, target_col, normalize=False, mi_threshol
 
 ### Funcion: plot_features_cat_classification (Fernando)
 
-'''import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import mutual_info_score'''
 
-
-
-# Definir la función plot_features_cat_classification
 def plot_features_cat_classification(df, target_col="", columns=[], mi_threshold=0.0, normalize=False):
     """
     Grafica la distribución de las clases objetivo para características categóricas en un dataframe,
@@ -875,7 +818,7 @@ def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
     target_col (str): El nombre de la columna objetivo. Si está vacío, no se realizará una selección basada en el objetivo.
     selectores (dict): Un diccionario que especifica los métodos de selección de características y sus parámetros.
         Claves posibles y sus valores esperados:
-            - "KBest": int, número de características a seleccionar usando SelectKBest con ANOVA.
+            - "KBest": int, número de características a seleccionar usando SelectKBest con ANOVA o f_regression.
             - "FromModel": lista, que contiene un estimador y un valor de umbral o un entero para características máximas.
             - "RFE": tupla, que contiene un estimador, número de características a seleccionar y valor de step.
             - "SFS": tupla, que contiene un estimador y número de características a seleccionar usando Sequential Feature Selector.
@@ -889,7 +832,7 @@ def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
     >>> selectores = {
     >>>     "KBest": 5,
     >>>     "FromModel": [RandomForestClassifier(), 5],
-    >>>     "RFE": [LogisticRegression(), 5, 1],
+    >>>     "RFE": [LogisticRegression(max_iter=5000), 5, 1],
     >>>     "SFS": [RandomForestClassifier(), 5]
     >>> }
     >>> 
@@ -908,6 +851,24 @@ def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
     X = dataset[feature_cols]
     y = dataset[target_col] if target_col else None
 
+    # Identificar variables categóricas y numéricas
+    categorical_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
+    numeric_cols = X.select_dtypes(include=['number']).columns.tolist()
+
+    # Crear preprocesador con OneHotEncoder para categóricas y StandardScaler para numéricas
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numeric_cols),
+            ('cat', OneHotEncoder(drop='first'), categorical_cols)
+        ]
+    )
+
+    # Ajustar el preprocesador a los datos
+    preprocessor.fit(X)
+
+    # Determinar si la variable objetivo es categórica o numérica
+    target_is_categorical = y.dtype == 'object' or y.dtype.name == 'category'
+
     selected_features = {}
 
     if not selectores:
@@ -920,64 +881,126 @@ def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
             features.append(col)
         selected_features['all_features'] = features
     else:
+        def get_transformed_feature_names(column_transformer):
+            """Get feature names after transformation."""
+            output_features = []
+            for name, transformer, columns in column_transformer.transformers_:
+                if transformer == 'drop' or isinstance(transformer, str):
+                    continue
+                if hasattr(transformer, 'get_feature_names_out'):
+                    # Asegurarse de que el transformador esté ajustado antes de llamar a get_feature_names_out
+                    if not hasattr(transformer, 'categories_'):
+                        transformer.fit(X[columns])
+                    names = transformer.get_feature_names_out(columns)
+                else:
+                    names = columns
+                output_features.extend(names)
+            return output_features
+
         if "KBest" in selectores:
             k = selectores["KBest"]
-            kbest_selector = SelectKBest(f_classif, k=k)
+            score_func = f_classif if target_is_categorical else f_regression
+            kbest_selector = Pipeline(steps=[
+                ('preprocessor', preprocessor),
+                ('selector', SelectKBest(score_func, k=k))
+            ])
             kbest_selector.fit(X, y)
-            kbest_features = [feature_cols[i] for i in kbest_selector.get_support(indices=True)]
+            kbest_feature_indices = kbest_selector.named_steps['selector'].get_support(indices=True)
+            transformed_feature_names = get_transformed_feature_names(preprocessor)
+            kbest_features = [transformed_feature_names[i] for i in kbest_feature_indices]
             selected_features["KBest"] = kbest_features
 
         if "FromModel" in selectores:
             model, threshold = selectores["FromModel"]
             if isinstance(threshold, int):
-                sfm_selector = SelectFromModel(model, max_features=threshold, threshold=-np.inf)
+                sfm_selector = Pipeline(steps=[
+                    ('preprocessor', preprocessor),
+                    ('selector', SelectFromModel(model, max_features=threshold, threshold=-np.inf))
+                ])
             else:
-                sfm_selector = SelectFromModel(model, threshold=threshold)
+                sfm_selector = Pipeline(steps=[
+                    ('preprocessor', preprocessor),
+                    ('selector', SelectFromModel(model, threshold=threshold))
+                ])
             sfm_selector.fit(X, y)
-            sfm_features = [feature_cols[i] for i in sfm_selector.get_support(indices=True)]
+            sfm_feature_indices = sfm_selector.named_steps['selector'].get_support(indices=True)
+            transformed_feature_names = get_transformed_feature_names(preprocessor)
+            sfm_features = [transformed_feature_names[i] for i in sfm_feature_indices]
             selected_features["FromModel"] = sfm_features
 
         if "RFE" in selectores:
             model, n_features_to_select, step = selectores["RFE"]
-            rfe_selector = RFE(model, n_features_to_select=n_features_to_select, step=step)
+            rfe_selector = Pipeline(steps=[
+                ('preprocessor', preprocessor),
+                ('selector', RFE(model, n_features_to_select=n_features_to_select, step=step))
+            ])
             rfe_selector.fit(X, y)
-            rfe_features = [feature_cols[i] for i in rfe_selector.get_support(indices=True)]
+            rfe_feature_indices = rfe_selector.named_steps['selector'].get_support(indices=True)
+            transformed_feature_names = get_transformed_feature_names(preprocessor)
+            rfe_features = [transformed_feature_names[i] for i in rfe_feature_indices]
             selected_features["RFE"] = rfe_features
 
         if "SFS" in selectores:
             model, k_features = selectores["SFS"]
-            sfs_selector = SequentialFeatureSelector(model, n_features_to_select=k_features, direction='forward')
+            sfs_selector = Pipeline(steps=[
+                ('preprocessor', preprocessor),
+                ('selector', SequentialFeatureSelector(model, n_features_to_select=k_features, direction='forward'))
+            ])
             sfs_selector.fit(X, y)
-            sfs_features = [feature_cols[i] for i in sfs_selector.get_support(indices=True)]
+            sfs_feature_indices = sfs_selector.named_steps['selector'].get_support(indices=True)
+            transformed_feature_names = get_transformed_feature_names(preprocessor)
+            sfs_features = [transformed_feature_names[i] for i in sfs_feature_indices]
             selected_features["SFS"] = sfs_features
 
     # Hard voting
-    all_features = []
-    for key in selected_features:
-        all_features.extend(selected_features[key])
+    def hard_voting_feature_selection(selected_features):
+        """Realiza una selección de características basada en hard voting."""
+        # Diccionario para contar los votos de cada característica
+        feature_votes = {}
 
-    if hard_voting:
-        all_features.extend(hard_voting)
+        # Recorrer cada lista de características seleccionadas y asignar votos
+        for feature_list in selected_features.values():
+            for feature in feature_list:
+                if feature in feature_votes:
+                    feature_votes[feature] += 1
+                else:
+                    feature_votes[feature] = 1
 
-    feature_counts = pd.Series(all_features).value_counts()
-    most_voted_features = feature_counts[feature_counts > 1].index.tolist()
+        # Seleccionar las características con más votos
+        max_votes = max(feature_votes.values())
+        most_voted_features = [feature for feature, votes in feature_votes.items() if votes == max_votes]
 
-    if not most_voted_features:
-        most_voted_features = feature_counts.index.tolist()
+        return most_voted_features
 
+    most_voted_features = hard_voting_feature_selection(selected_features)
     selected_features["hard_voting"] = most_voted_features
 
     return selected_features
 
-# Ejemplo de uso
-selectores = {
+
+# Ejemplo de uso con variable categórica
+selectores_categorico = { 
     "KBest": 5,
     "FromModel": [RandomForestClassifier(), 5],
-    "RFE": [LogisticRegression(), 5, 1],
-    "SFS": [RandomForestClassifier(), 5]
+    "RFE": [LogisticRegression(max_iter=5000), 5, 1],
+    "SFS": [RandomForestClassifier(), 5] 
 }
 
-# Ejemplo de uso:
-# super_selector(dataset, target_col=" ", selectores=selectores, hard_voting=[])
+# Ejemplo de uso con variable numérica
+selectores_numerico = { 
+    "KBest": 5,
+    "FromModel": [RandomForestRegressor(), 5],
+    "RFE": [LinearRegression(), 5, 1],
+    "SFS": [RandomForestRegressor(), 5] 
+}
+
+# Llamada a la función con un dataset y la variable objetivo categórica
+# super_selector(df, target_col=" ", selectores=selectores_categorico, hard_voting=[])
+
+# Llamada a la función con un dataset y la variable objetivo numérica
+# super_selector(df, target_col="some_numeric_target", selectores=selectores_numerico, hard_voting=[])
+
+
+
 
 #####################################################################################################################
