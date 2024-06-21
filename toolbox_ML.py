@@ -454,6 +454,36 @@ def plot_features_cat_regression(dataframe, target_col="", columns=[], pvalue=0.
 ### Funcion: eval_model (Alfonso)
 
 def eval_model(target, predictions, problem_type, metrics):
+    """
+    Evalúa un modelo de regresión o clasificación en base a un conjunto de métricas especificadas.
+
+    Parámetros:
+    target : array-like
+        Valores verdaderos del target.
+    predictions : array-like
+        Valores predichos por el modelo.
+    problem_type : str
+        Tipo de problema ('regression' o 'classification').
+    metrics : list of str
+        Lista de métricas a calcular. 
+        - Para regresión: ['RMSE', 'MAE', 'MAPE', 'GRAPH']
+        - Para clasificación: ['ACCURACY', 'PRECISION', 'RECALL', 'CLASS_REPORT', 'MATRIX', 'MATRIX_RECALL', 'MATRIX_PRED', 'PRECISION_X', 'RECALL_X']
+          donde 'X' es una etiqueta de alguna de las clases del target.
+
+    Retorna:
+    tuple
+        Tupla con los resultados de las métricas calculadas en el orden especificado en la lista de métricas. 
+        Las métricas que no devuelven valores numéricos retornan None en su lugar.
+
+    Excepciones:
+    ValueError
+        Se lanza si ocurre un error en el cálculo de una métrica, si se especifica una métrica no soportada,
+        si el tipo de problema es inválido, o si se especifica una clase que no está presente en el target.
+
+    Ejemplos de uso:
+    >>> eval_model(y_true, y_pred, 'regression', ['RMSE', 'MAE', 'GRAPH'])
+    >>> eval_model(y_true, y_pred, 'classification', ['ACCURACY', 'PRECISION', 'RECALL', 'MATRIX', 'PRECISION_1', 'RECALL_2'])
+    """
     results = {}
     target = np.array(target)
     predictions = np.array(predictions)
